@@ -51,13 +51,13 @@ nên sau `pip install -e .` không cần gọi `python -m ...` nữa.
 
 Project đang dùng `src` layout, nên nếu chưa chạy `pip install -e .`, có thể chạy:
 
-```bash id="a3j1zb"
+```bash
 PYTHONPATH=src python -m app.main --help
 ```
 
 hoặc:
 
-```bash id="3xy0v7"
+```bash
 cd src
 python -m app.main --help
 ```
@@ -160,7 +160,7 @@ copyast bulk-import \
 
 Ví dụ `files.txt`:
 
-```txt id="4vfrx7"
+```txt
 src/app/main.py
 src/app/domain/services.py
 tests/test_smoke.py
@@ -248,7 +248,7 @@ Lệnh này sẽ:
 
 ### Ví dụ `.copyastignore`
 
-```gitignore id="1ouqty"
+```gitignore
 __pycache__/
 *.py[cod]
 .venv/
@@ -282,3 +282,14 @@ bundle.txt
 ```
 
 Project hiện cũng có `.copyastignore.example` để làm mẫu.  có thể copy file đó thành `.copyastignore` rồi mở rộng thêm rule riêng cho project của mình.
+
+## Cleanup Code (Optional)
+
+```shell
+pip install black isort ruff
+ruff check . --fix
+isort .
+black .
+``` 
+
+---
