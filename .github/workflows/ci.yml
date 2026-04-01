@@ -74,8 +74,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
+          
   trivy-source:
     name: Scan source Trivy
     runs-on: ubuntu-latest
