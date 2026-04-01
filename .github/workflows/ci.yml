@@ -1,0 +1,174 @@
+name: copyast-ci
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - "v*"
+  pull_request:
+    branches: [main, master]
+
+env:
+  PYTHON_VERSION: "3.11"
+  DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
+  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/copyast
+
+jobs:
+  unit-test:
+    name: Run unit test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install -e .
+          pip install pytest-cov
+
+      - name: Run pytest and generate reports
+        run: |
+          pytest \
+            -q \
+            --maxfail=1 \
+            --cov=src/app \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term \
+            --junitxml=pytest-report.xml
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            coverage.xml
+            pytest-report.xml
+
+  sonar-scan:
+    name: Sonar scan
+    runs-on: ubuntu-latest
+    needs: unit-test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download test reports
+        uses: actions/download-artifact@v4
+        with:
+          name: test-reports
+          path: .
+
+      - name: SonarQube scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  trivy-source:
+    name: Scan source Trivy
+    runs-on: ubuntu-latest
+    needs: sonar-scan
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+
+  build-push:
+    name: Build and push Docker image
+    runs-on: ubuntu-latest
+    needs: trivy-source
+    if: github.event_name == 'push'
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      dockerhub_image_ref: ${{ steps.refs.outputs.dockerhub_image_ref }}
+      ghcr_image_ref: ${{ steps.refs.outputs.ghcr_image_ref }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image refs
+        id: refs
+        run: |
+          SHORT_SHA="${GITHUB_SHA}"
+          echo "dockerhub_image_ref=${DOCKERHUB_IMAGE}:${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "ghcr_image_ref=${GHCR_IMAGE}:${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push to Docker Hub and GHCR
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.refs.outputs.dockerhub_image_ref }}
+            ${{ env.DOCKERHUB_IMAGE }}:latest
+            ${{ steps.refs.outputs.ghcr_image_ref }}
+            ${{ env.GHCR_IMAGE }}:latest
+
+  trivy-image:
+    name: Scan image Trivy
+    runs-on: ubuntu-latest
+    needs: build-push
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Trivy scan Docker Hub image
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ needs.build-push.outputs.dockerhub_image_ref }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+
+      - name: Trivy scan GHCR image
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ needs.build-push.outputs.ghcr_image_ref }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
