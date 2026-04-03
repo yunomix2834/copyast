@@ -23,10 +23,17 @@ def test_export_and_delete(tmp_path: Path):
         conf=CopyastConfig(),
     )
     matcher = CopyastIgnoreAdapter([])
-    count = service.export_directory(root, bundle, matcher)
+    roots = service.parse_root_specs([str(root)])
+
+    count = service.export_directories(
+        roots=roots,
+        export_file=bundle,
+        ignore_by_alias={roots[0].alias: matcher},
+        append=False,
+    )
     assert count == 2
 
-    deleted = service.delete_paths(bundle, ["a.txt"])
+    deleted = service.delete_targets(bundle, files=["a.txt"], dirs=[])
     assert deleted == 1
 
     text = bundle.read_text(encoding="utf-8")

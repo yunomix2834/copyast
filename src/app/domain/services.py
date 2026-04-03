@@ -27,7 +27,7 @@ class CopyastService:
         raw_roots = raw_roots or ["."]
         specs: list[RootSpec] = []
 
-        for raw in raw_roots:
+        for index, raw in enumerate(raw_roots, start=1):
             item = raw.strip()
             if not item:
                 continue
@@ -38,15 +38,16 @@ class CopyastService:
                 root_path = Path(raw_path.strip()).resolve()
             else:
                 root_path = Path(item).resolve()
-                alias = root_path.name
+                alias = root_path.name or f"root{index}"
 
             if not alias:
-                raise ValueError(f"Invalid root-dir alias: {raw}")
+                alias = f"root{index}"
 
             specs.append(RootSpec(alias=alias, path=root_path))
 
         if not specs:
-            specs = [RootSpec(alias=Path(".").resolve().name, path=Path(".").resolve())]
+            cwd = Path(".").resolve()
+            specs = [RootSpec(alias=cwd.name or "root1", path=cwd)]
 
         aliases = [x.alias for x in specs]
         if len(set(aliases)) != len(aliases):

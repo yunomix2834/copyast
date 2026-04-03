@@ -16,7 +16,7 @@ def build_service() -> CopyastService:
     )
 
 
-def test_upsert_paths_adds_and_updates_entries(tmp_path: Path):
+def test_upsert_targets_multi_adds_and_updates_entries(tmp_path: Path):
     root = tmp_path
     bundle = root / "copyast.txt"
 
@@ -24,8 +24,14 @@ def test_upsert_paths_adds_and_updates_entries(tmp_path: Path):
     file_a.write_text("v1", encoding="utf-8")
 
     service = build_service()
+    roots = service.parse_root_specs([str(root)])
 
-    updated = service.upsert_paths(root, bundle, ["a.txt"])
+    updated = service.upsert_targets_multi(
+        roots=roots,
+        export_file=bundle,
+        files=["a.txt"],
+        dirs=[],
+    )
     assert updated == 1
 
     text = bundle.read_text(encoding="utf-8")
@@ -33,7 +39,13 @@ def test_upsert_paths_adds_and_updates_entries(tmp_path: Path):
     assert "v1" in text
 
     file_a.write_text("v2", encoding="utf-8")
-    updated = service.upsert_paths(root, bundle, ["a.txt"])
+
+    updated = service.upsert_targets_multi(
+        roots=roots,
+        export_file=bundle,
+        files=["a.txt"],
+        dirs=[],
+    )
     assert updated == 1
 
     text = bundle.read_text(encoding="utf-8")
@@ -50,8 +62,14 @@ def test_export_skips_ignored_file(tmp_path: Path):
 
     service = build_service()
     matcher = CopyastIgnoreAdapter(["*.log"])
+    roots = service.parse_root_specs([str(root)])
 
-    count = service.export_directory(root, bundle, matcher)
+    count = service.export_directories(
+        roots=roots,
+        export_file=bundle,
+        ignore_by_alias={roots[0].alias: matcher},
+        append=False,
+    )
     assert count == 1
 
     text = bundle.read_text(encoding="utf-8")
