@@ -32,7 +32,9 @@ class CLI:
                 ),
             )
         else:
-            parser.add_argument("--root-dir", default=".", help="Project root directory")
+            parser.add_argument(
+                "--root-dir", default=".", help="Project root directory"
+            )
 
     def _add_export(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument("--export", required=True, help="Export txt file path")
@@ -71,7 +73,8 @@ class CLI:
 
     def _build(self) -> None:
         export = self.subparsers.add_parser(
-            "export", help="Export all files from one or many folders to one txt export file"
+            "export",
+            help="Export all files from one or many folders to one txt export file",
         )
         self._add_root_dir(export, multiple=True)
         self._add_export(export)
@@ -90,14 +93,16 @@ class CLI:
         )
 
         import_one = self.subparsers.add_parser(
-            "import", help="Import file(s) or directory(s) from one or many roots into export"
+            "import",
+            help="Import file(s) or directory(s) from one or many roots into export",
         )
         self._add_root_dir(import_one, multiple=True)
         self._add_export(import_one)
         self._add_file_dir_targets(import_one)
 
         bulk_import = self.subparsers.add_parser(
-            "bulk-import", help="Bulk import file(s) or directory(s) from one or many roots into export"
+            "bulk-import",
+            help="Bulk import file(s) or directory(s) from one or many roots into export",
         )
         self._add_root_dir(bulk_import, multiple=True)
         self._add_export(bulk_import)

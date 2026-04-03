@@ -57,7 +57,9 @@ class CopyastService:
 
         return specs
 
-    def _build_bundle_path(self, spec: RootSpec, full: Path, *, multi_root: bool) -> str:
+    def _build_bundle_path(
+        self, spec: RootSpec, full: Path, *, multi_root: bool
+    ) -> str:
         rel = str(full.resolve().relative_to(spec.path.resolve())).replace("\\", "/")
         return f"{spec.alias}/{rel}" if multi_root else rel
 
@@ -80,7 +82,9 @@ class CopyastService:
                 if not full.exists():
                     continue
                 if full.is_dir():
-                    self.conf.logger.warning("Expected file but got directory: %s", raw_file)
+                    self.conf.logger.warning(
+                        "Expected file but got directory: %s", raw_file
+                    )
                     continue
 
                 key = (spec.alias, full)
@@ -97,7 +101,9 @@ class CopyastService:
                 if not full_dir.exists():
                     continue
                 if not full_dir.is_dir():
-                    self.conf.logger.warning("Expected directory but got file: %s", raw_dir)
+                    self.conf.logger.warning(
+                        "Expected directory but got file: %s", raw_dir
+                    )
                     continue
 
                 for file_path in self.fs.walk_files(full_dir):
@@ -139,11 +145,17 @@ class CopyastService:
                 try:
                     content = self.fs.read_text(file_path)
                 except (UnicodeDecodeError, OSError) as exc:
-                    self.conf.logger.warning("Skip unreadable text file %s: %s", rel, exc)
+                    self.conf.logger.warning(
+                        "Skip unreadable text file %s: %s", rel, exc
+                    )
                     continue
 
-                bundle_path = self._build_bundle_path(spec, file_path, multi_root=multi_root)
-                dict_entry_path[bundle_path] = CopyastEntry(path=bundle_path, content=content)
+                bundle_path = self._build_bundle_path(
+                    spec, file_path, multi_root=multi_root
+                )
+                dict_entry_path[bundle_path] = CopyastEntry(
+                    path=bundle_path, content=content
+                )
 
         self.repo.save(export_file, list(dict_entry_path.values()))
         return len(dict_entry_path)
@@ -174,7 +186,9 @@ class CopyastService:
                 continue
 
             bundle_path = self._build_bundle_path(spec, full, multi_root=multi_root)
-            dict_entry_path[bundle_path] = CopyastEntry(path=bundle_path, content=content)
+            dict_entry_path[bundle_path] = CopyastEntry(
+                path=bundle_path, content=content
+            )
             updated += 1
 
         self.repo.save(export_file, list(dict_entry_path.values()))
@@ -234,7 +248,10 @@ class CopyastService:
             if entry_path in normalized_files:
                 continue
 
-            if any(entry_path == d or entry_path.startswith(d + "/") for d in normalized_dirs):
+            if any(
+                entry_path == d or entry_path.startswith(d + "/")
+                for d in normalized_dirs
+            ):
                 continue
 
             if any(token in entry_path for token in contains_list):
@@ -246,7 +263,9 @@ class CopyastService:
         self.repo.save(export_file, filtered)
         return deleted
 
-    def sync_git_multi(self, roots: list[RootSpec], export_file: Path) -> dict[str, int]:
+    def sync_git_multi(
+        self, roots: list[RootSpec], export_file: Path
+    ) -> dict[str, int]:
         total_modified = 0
         total_untracked = 0
         total_deleted = 0
@@ -280,7 +299,9 @@ class CopyastService:
                     continue
 
                 bundle_path = self._build_bundle_path(spec, full, multi_root=multi_root)
-                dict_entry_path[bundle_path] = CopyastEntry(path=bundle_path, content=content)
+                dict_entry_path[bundle_path] = CopyastEntry(
+                    path=bundle_path, content=content
+                )
                 imported += 1
 
             deleted_paths = {

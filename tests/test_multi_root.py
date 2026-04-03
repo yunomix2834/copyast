@@ -1,7 +1,10 @@
 from pathlib import Path
 
 from app.domain.services import CopyastService
-from app.infrastructure.adapter.copyast_adapter import CopyastAdapter, CopyastIgnoreAdapter
+from app.infrastructure.adapter.copyast_adapter import (
+    CopyastAdapter,
+    CopyastIgnoreAdapter,
+)
 from app.infrastructure.adapter.file_adapter import FileAdapter
 from app.infrastructure.adapter.git_adapter import GitAdapter
 from app.infrastructure.config import CopyastConfig
@@ -28,9 +31,7 @@ def test_export_multi_root_prefixes_alias(tmp_path: Path):
     bundle = tmp_path / "bundle.txt"
     service = build_service()
 
-    roots = service.parse_root_specs(
-        [f"app={repo_a}", f"ci={repo_b}"]
-    )
+    roots = service.parse_root_specs([f"app={repo_a}", f"ci={repo_b}"])
 
     count = service.export_directories(
         roots=roots,
