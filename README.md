@@ -477,3 +477,78 @@ ruff check . --fix
 isort .
 black .
 ```
+
+---
+
+## 10. Build thành app cho Linux Ubuntu và Windows
+
+Project hỗ trợ build thành binary độc lập bằng `PyInstaller`.
+
+### 10.1 Cài dependency build
+
+```bash
+pip install -r requirements-dev.txt
+````
+
+---
+
+### 10.2 Build trên Linux Ubuntu
+
+```bash
+chmod +x scripts/build-linux.sh
+./scripts/build-linux.sh
+```
+
+File kết quả:
+
+```bash
+dist-bin/copyast
+```
+
+Chạy thử:
+
+```bash
+./dist-bin/copyast --help
+```
+
+---
+
+### 10.3 Build trên Windows
+
+Mở PowerShell tại thư mục project:
+
+```powershell
+./scripts/build-windows.ps1
+```
+
+File kết quả:
+
+```powershell
+dist-bin/copyast.exe
+```
+
+Chạy thử:
+
+```powershell
+.\dist-bin\copyast.exe --help
+```
+
+---
+
+### 10.4 Build tự động bằng GitHub Actions
+
+CI có thể build binary cho:
+
+* Ubuntu → artifact `copyast-linux`
+* Windows → artifact `copyast-windows`
+
+Sau khi workflow chạy xong, có thể tải các artifact này từ GitHub Actions.
+
+---
+
+### 10.5 Lưu ý
+
+* Binary build trên Linux dùng cho Linux.
+* Binary build trên Windows dùng cho Windows.
+* Không nên build chéo Linux → Windows hoặc ngược lại bằng PyInstaller trong flow đơn giản này.
+* Nếu thay đổi code hoặc dependency, nên build lại binary.
