@@ -14,7 +14,12 @@ class ScanDeleteCommand(Command):
         self.config = config
 
     def execute(self, args: Namespace) -> int:
-        bundle = Path(args.bundle).resolve()
-        deleted = self.service.scan_delete(bundle, args.contains)
+        export_file = Path(args.export).resolve()
+        deleted = self.service.scan_delete(
+            export_file=export_file,
+            contains_list=args.contains,
+            files=args.file,
+            dirs=args.dir,
+        )
         self.config.logger.info("Scan delete removed %s file block(s)", deleted)
         return 0

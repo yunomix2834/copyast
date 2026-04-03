@@ -28,9 +28,14 @@ class FileAdapter(FilePort):
     def is_binary(self, path: Path) -> bool:
         try:
             with path.open("rb") as fh:
-                chunk = fh.read(4096)
-            return b"\x00" in chunk
-        except OSError:
+                chunk = fh.read(8192)
+
+            if b"\x00" in chunk:
+                return True
+
+            chunk.decode("utf-8")
+            return False
+        except (UnicodeDecodeError, OSError):
             return True
 
     # yield biến hàm thành generator.

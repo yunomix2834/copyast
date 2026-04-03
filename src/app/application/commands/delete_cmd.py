@@ -14,7 +14,11 @@ class DeleteCommand(Command):
         self.config = config
 
     def execute(self, args: Namespace) -> int:
-        bundle = Path(args.bundle).resolve()
-        deleted = self.service.delete_paths(bundle, [args.path])
-        self.config.logger.info("Deleted %s file(s) from bundle", deleted)
+        export_file = Path(args.export).resolve()
+        deleted = self.service.delete_targets(
+            export_file=export_file,
+            files=args.file,
+            dirs=args.dir,
+        )
+        self.config.logger.info("Deleted %s file(s) from export", deleted)
         return 0

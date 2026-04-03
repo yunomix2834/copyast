@@ -15,16 +15,22 @@ class ExportCommand(Command):
         self.config = config
 
     def execute(self, args: Namespace) -> int:
-        root = Path(args.root).resolve()
-        bundle_path = (
-            (root / args.output).resolve()
-            if not Path(args.output).is_absolute()
-            else Path(args.output)
+        roots = self.service.parse_root_specs(args.root_dir)
+        export_file = Path(args.export).resolve()
+
+        ignore_by_alias: dict[str, CopyastIgnoreAdapter] = {}
+        for spec in roots:
+            ignore_file = self.config.get_ignore_file(args.ignore_file)
+            ignore_matcher = CopyastIgnoreAdapter.from_sources(
+                spec.path, spec.path / ignore_file, args.ignore
+            )
+            ignore_by_alias[spec.alias] = ignore_matcher
+
+        count = self.service.export_directories(
+            roots=roots,
+            export_file=export_file,
+            ignore_by_alias=ignore_by_alias,
+            append=args.append,
         )
-        ignore_file = self.config.get_ignore_file(args.ignore_file)
-        ignore_matcher = CopyastIgnoreAdapter.from_sources(
-            root, root / ignore_file, args.ignore
-        )
-        count = self.service.export_directory(root, bundle_path, ignore_matcher)
-        self.config.logger.info("Exported %s file(s) to %s", count, bundle_path)
+        self.config.logger.info("Exported %s file(s) to %s", count, export_file)
         return 0

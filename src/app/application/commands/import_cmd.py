@@ -14,8 +14,14 @@ class ImportCommand(Command):
         self.config = config
 
     def execute(self, args: Namespace) -> int:
-        root = Path(args.root).resolve()
-        bundle = Path(args.bundle).resolve()
-        updated = self.service.upsert_paths(root, bundle, [args.path])
+        roots = self.service.parse_root_specs(args.root_dir)
+        export_file = Path(args.export).resolve()
+
+        updated = self.service.upsert_targets_multi(
+            roots=roots,
+            export_file=export_file,
+            files=args.file,
+            dirs=args.dir,
+        )
         self.config.logger.info("Imported/updated %s file(s)", updated)
         return 0

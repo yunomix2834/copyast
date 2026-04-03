@@ -14,9 +14,10 @@ class SyncGitCommand(Command):
         self.config = config
 
     def execute(self, args: Namespace) -> int:
-        root = Path(args.root).resolve()
-        bundle = Path(args.bundle).resolve()
-        result = self.service.sync_git(root, bundle)
+        roots = self.service.parse_root_specs(args.root_dir)
+        export_file = Path(args.export).resolve()
+
+        result = self.service.sync_git_multi(roots, export_file)
         self.config.logger.info(
             "sync-git => modified=%s untracked=%s deleted=%s | updated=%s removed=%s",
             result["modified_count"],

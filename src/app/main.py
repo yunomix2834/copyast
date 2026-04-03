@@ -10,91 +10,123 @@ class CLI:
     def __init__(self) -> None:
         self.parser = argparse.ArgumentParser(
             prog="copyast",
-            description="Export files to a txt bundle, manage entries, and sync with git diff.",
+            description="Export files to a txt export file, manage entries, and sync with git diff.",
         )
         self.subparsers = self.parser.add_subparsers(dest="command", required=True)
         self._build()
 
-    # Thêm argument --root vào nhiều subcommand
-    def _common_add_arg_root(self, parser: argparse.ArgumentParser) -> None:
-        parser.add_argument("--root", default=".", help="Project root directory")
+    def _add_root_dir(
+        self,
+        parser: argparse.ArgumentParser,
+        *,
+        multiple: bool = False,
+    ) -> None:
+        if multiple:
+            parser.add_argument(
+                "--root-dir",
+                action="append",
+                default=[],
+                help=(
+                    "Project root directory. Repeatable. "
+                    "Supports alias syntax: alias=/path/to/root"
+                ),
+            )
+        else:
+            parser.add_argument("--root-dir", default=".", help="Project root directory")
+
+    def _add_export(self, parser: argparse.ArgumentParser) -> None:
+        parser.add_argument("--export", required=True, help="Export txt file path")
+
+    def _add_file_dir_targets(
+        self,
+        parser: argparse.ArgumentParser,
+        *,
+        include_list_file: bool = False,
+        include_contains: bool = False,
+    ) -> None:
+        parser.add_argument(
+            "--file",
+            action="append",
+            default=[],
+            help="File target, repeat this flag to pass multiple files",
+        )
+        parser.add_argument(
+            "--dir",
+            action="append",
+            default=[],
+            help="Directory target, repeat this flag to pass multiple directories",
+        )
+        if include_list_file:
+            parser.add_argument(
+                "--list-file",
+                help="Txt file containing targets. Use file:<path> or dir:<path>. Trailing / is treated as dir.",
+            )
+        if include_contains:
+            parser.add_argument(
+                "--contains",
+                action="append",
+                default=[],
+                help="Substring matcher, repeatable",
+            )
 
     def _build(self) -> None:
-        # Export
         export = self.subparsers.add_parser(
-            "export", help="Export all files from a folder to a txt bundle"
+            "export", help="Export all files from one or many folders to one txt export file"
         )
-        self._common_add_arg_root(export)
-        export.add_argument("--output", required=True, help="Output txt bundle path")
+        self._add_root_dir(export, multiple=True)
+        self._add_export(export)
         export.add_argument(
             "--ignore-file",
             default=".copyastignore.example",
-            help="Ignore file path relative to root",
+            help="Ignore file path relative to each root-dir",
         )
         export.add_argument(
             "--ignore", action="append", default=[], help="Additional ignore pattern"
         )
+        export.add_argument(
+            "--append",
+            action="store_true",
+            help="Append/merge into existing export file instead of overwriting it",
+        )
 
-        # Import
         import_one = self.subparsers.add_parser(
-            "import", help="Import one file path into existing bundle"
+            "import", help="Import file(s) or directory(s) from one or many roots into export"
         )
-        self._common_add_arg_root(import_one)
-        import_one.add_argument("--bundle", required=True, help="Bundle txt path")
-        import_one.add_argument("--path", required=True, help="File path to import")
+        self._add_root_dir(import_one, multiple=True)
+        self._add_export(import_one)
+        self._add_file_dir_targets(import_one)
 
-        # Bulk Import
         bulk_import = self.subparsers.add_parser(
-            "bulk-import", help="Import many files into bundle"
+            "bulk-import", help="Bulk import file(s) or directory(s) from one or many roots into export"
         )
-        self._common_add_arg_root(bulk_import)
-        bulk_import.add_argument("--bundle", required=True, help="Bundle txt path")
-        bulk_import.add_argument(
-            "--paths", nargs="*", default=[], help="List of file paths"
-        )
-        bulk_import.add_argument(
-            "--list-file", help="A txt file containing file paths, one per line"
-        )
+        self._add_root_dir(bulk_import, multiple=True)
+        self._add_export(bulk_import)
+        self._add_file_dir_targets(bulk_import, include_list_file=True)
 
-        # Delete
         delete = self.subparsers.add_parser(
-            "delete", help="Delete one file entry from bundle"
+            "delete", help="Delete file(s) or directory(s) from export"
         )
-        delete.add_argument("--bundle", required=True, help="Bundle txt path")
-        delete.add_argument(
-            "--path", required=True, help="Relative path to remove from bundle"
-        )
+        self._add_export(delete)
+        self._add_file_dir_targets(delete)
 
-        # Bulk Delete
         bulk_delete = self.subparsers.add_parser(
-            "bulk-delete", help="Delete many file entries from bundle"
+            "bulk-delete", help="Bulk delete file(s) or directory(s) from export"
         )
-        bulk_delete.add_argument("--bundle", required=True, help="Bundle txt path")
-        bulk_delete.add_argument(
-            "--paths", nargs="*", default=[], help="List of relative paths"
-        )
-        bulk_delete.add_argument(
-            "--list-file", help="A txt file containing paths, one per line"
-        )
+        self._add_export(bulk_delete)
+        self._add_file_dir_targets(bulk_delete, include_list_file=True)
 
-        # Scan Delete
         scan_delete = self.subparsers.add_parser(
             "scan-delete",
-            help="Remove blocks where header path contains a given string",
+            help="Delete by substring match and/or exact file/dir targets from export",
         )
-        scan_delete.add_argument("--bundle", required=True, help="Bundle txt path")
-        scan_delete.add_argument(
-            "--contains",
-            required=True,
-            help="Substring to search inside file header path",
-        )
+        self._add_export(scan_delete)
+        self._add_file_dir_targets(scan_delete, include_contains=True)
 
-        # Sync Git
         sync_git = self.subparsers.add_parser(
-            "sync-git", help="Sync bundle according to git changes"
+            "sync-git", help="Sync export according to git changes"
         )
-        self._common_add_arg_root(sync_git)
-        sync_git.add_argument("--bundle", required=True, help="Bundle txt path")
+        self._add_root_dir(sync_git, multiple=True)
+        self._add_export(sync_git)
 
     def parse_args(self, argv: list[str] | None = None) -> argparse.Namespace:
         return self.parser.parse_args(argv)
